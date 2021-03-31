@@ -163,6 +163,11 @@ extern "C" {
 		}
 	}
 
+	static inline void delay_ms(u32 amount)
+	{
+		delay_us(1000 * amount);
+	}
+
 	static inline int get_clock_rate(int clk_id)
 	{
 		rpi_mailbox_property_t *buf;
