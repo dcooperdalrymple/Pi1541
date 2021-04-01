@@ -2,17 +2,17 @@
 // Copyright(C) 2018 Stephen White
 //
 // This file is part of Pi1541.
-// 
+//
 // Pi1541 is free software : you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // Pi1541 is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Pi1541. If not, see <http://www.gnu.org/licenses/>.
 
@@ -48,7 +48,7 @@ extern int numberOfUSBMassStorageDevices;
 
 unsigned char FileBrowser::LSTBuffer[FileBrowser::LSTBuffer_size];
 
-static const u32 palette[] = 
+static const u32 palette[] =
 {
 	RGBA(0x00, 0x00, 0x00, 0xFF),
 	RGBA(0xFF, 0xFF, 0xFF, 0xFF),
@@ -243,7 +243,7 @@ void FileBrowser::BrowsableListView::RefreshHighlightScroll()
 		}
 
 		int rowIndex = list->currentIndex - offset;
-		
+
 		u32 y = positionY;
 		y += rowIndex * screen->GetFontHeight ();
 
@@ -516,7 +516,7 @@ FileBrowser::FileBrowser(InputMappings* inputMappings, DiskCaddy* diskCaddy, ROM
 	, roms(roms)
 	, deviceID(deviceID)
 	, displayPNGIcons(displayPNGIcons)
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 	, screenMain(screenMain)
 #endif
 	, screenLCD(screenLCD)
@@ -526,7 +526,7 @@ FileBrowser::FileBrowser(InputMappings* inputMappings, DiskCaddy* diskCaddy, ROM
 
 	folder.scrollHighlightRate = scrollHighlightRate;
 
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 	u32 columns = screenMain->ScaleX(80);
 	u32 rows = (int)(38.0f * screenMain->GetScaleY());
 	u32 positionX = 0;
@@ -796,7 +796,7 @@ void FileBrowser::RefeshDisplayForBrowsableList(FileBrowser::BrowsableList* brow
 */
 void FileBrowser::RefeshDisplay()
 {
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 	u32 textColour = Colour(VIC2_COLOUR_INDEX_LGREEN);
 	u32 bgColour = Colour(VIC2_COLOUR_INDEX_GREY);
 	char buffer[1024];
@@ -819,6 +819,8 @@ void FileBrowser::RefeshDisplay()
 		u32 y = screenMain->ScaleY(STATUS_BAR_POSITION_Y);
 		screenMain->PrintText(false, 0, y, folder.searchPrefix, textColour, bgColour);
 	}
+
+	screenMain->SwapBuffers();
 #else
 	folder.RefreshViews();
 	caddySelections.RefreshViews();
@@ -873,12 +875,13 @@ void FileBrowser::DisplayPNG(FILINFO& filIcon, int x, int y)
 				int h;
 				int channels_in_file;
 				stbi_uc* image = stbi_load_from_memory((stbi_uc const*)PNG, bytesRead, &w, &h, &channels_in_file, 4);
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 
 				if (image && (w == PNG_WIDTH && h == PNG_HEIGHT))
 				{
 					//DEBUG_LOG("Opened PNG %s w = %d h = %d cif = %d\r\n", fileName, w, h, channels_in_file);
 					screenMain->PlotImage((u32*)image, x, y, w, h);
+					screenMain->SwapBuffers();
 				}
 				else
 				{
@@ -897,7 +900,7 @@ void FileBrowser::DisplayPNG(FILINFO& filIcon, int x, int y)
 
 void FileBrowser::DisplayPNG()
 {
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 	if (displayPNGIcons && folder.current)
 	{
 		FileBrowser::BrowsableList::Entry* current = folder.current;
@@ -1003,7 +1006,7 @@ void FileBrowser::UpdateCurrentHighlight()
 	if (folder.entries.size() > 0)
 	{
 		FileBrowser::BrowsableList::Entry* current = caddySelections.current;
-		
+
 		if (current && caddySelections.currentHighlightTime > 0)
 		{
 			caddySelections.currentHighlightTime -= 0.000001f;
@@ -1406,7 +1409,7 @@ void FileBrowser::UpdateInputDiskCaddy()
 
 void FileBrowser::DisplayStatusBar()
 {
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 	u32 x = 0;
 	u32 y = screenMain->ScaleY(STATUS_BAR_POSITION_Y);
 
@@ -1417,14 +1420,16 @@ void FileBrowser::DisplayStatusBar()
 		snprintf(bufferOut, 128, "LED 0 Motor 0 Track 18.0 ATN 0 DAT 0 CLK 0");
 
 	screenMain->PrintText(false, x, y, bufferOut, RGBA(0, 0, 0, 0xff), RGBA(0xff, 0xff, 0xff, 0xff));
+	screenMain->SwapBuffers();
 #endif
 }
 
 void FileBrowser::ClearScreen()
 {
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 	u32 bgColour = palette[VIC2_COLOUR_INDEX_BLUE];
 	screenMain->Clear(bgColour);
+	screenMain->SwapBuffers();
 #endif
 }
 
@@ -1449,7 +1454,7 @@ void FileBrowser::ShowDeviceAndROM( const char* ROMName )
 	u32 x = 0; // 43 * 8
 	u32 y;
 
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 	y = screenMain->ScaleY(STATUS_BAR_POSITION_Y) - 20;
 
 	snprintf(buffer, 256, "Device %2d %*s"
@@ -1459,6 +1464,7 @@ void FileBrowser::ShowDeviceAndROM( const char* ROMName )
 		);
 
 	screenMain->PrintText(false, x, y, buffer, textColour, bgColour);
+	screenMain->SwapBuffers();
 #endif
 	if (screenLCD)
 	{
@@ -1476,7 +1482,7 @@ void FileBrowser::ShowDeviceAndROM( const char* ROMName )
 
 void FileBrowser::DisplayDiskInfo(DiskImage* diskImage, const char* filenameForIcon)
 {
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 	// Ideally we should not have to load the entire disk to read the directory.
 	static const char* fileTypes[]=
 	{
@@ -1560,8 +1566,8 @@ void FileBrowser::DisplayDiskInfo(DiskImage* diskImage, const char* filenameForI
 		track = buffer[0];
 		sectorNo = buffer[1];
 
-		//144-161 ($90-Al) Name of the disk (padded with "shift space") 
-		//162,163 ($A2,$A3) Disk ID marker 
+		//144-161 ($90-Al) Name of the disk (padded with "shift space")
+		//162,163 ($A2,$A3) Disk ID marker
 		//164 ($A4) $A0 Shift Space
 		//165,166 ($A5,$A6) $32,$41 ASCII chars "2A" DOS indicator
 		//167-170 ($A7-$AA) $A0 Shift Space
@@ -1743,6 +1749,8 @@ void FileBrowser::DisplayDiskInfo(DiskImage* diskImage, const char* filenameForI
 			DisplayPNG(filIcon, x, y);
 		}
 	}
+
+	screenMain->SwapBuffers();
 #endif
 }
 
@@ -1796,7 +1804,7 @@ int FileBrowser::BrowsableList::FindNextAutoName(char* filename)
 	for (index = 0; index < len; ++index)
 	{
 		Entry* entry = &entries[index];
-		if (	!(entry->filImage.fattrib & AM_DIR) 
+		if (	!(entry->filImage.fattrib & AM_DIR)
 			&& strncasecmp(filename, entry->filImage.fname, inputlen) == 0
 			&& sscanf(entry->filImage.fname, scanfname, &foundnumber) == 1
 			)

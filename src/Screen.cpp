@@ -2,17 +2,17 @@
 // Copyright(C) 2018 Stephen White
 //
 // This file is part of Pi1541.
-// 
+//
 // Pi1541 is free software : you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // Pi1541 is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Pi1541. If not, see <http://www.gnu.org/licenses/>.
 
@@ -129,13 +129,13 @@ void Screen::Open(u32 widthDesired, u32 heightDesired, u32 colourDepth)
 
 void Screen::PlotPixel32(u32 pixel_offset, RGBA Colour)
 {
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 	*((volatile RGBA*)&framebuffer[pixel_offset]) = Colour;
 #endif
 }
 void Screen::PlotPixel24(u32 pixel_offset, RGBA Colour)
 {
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 	framebuffer[pixel_offset++] = BLUE(Colour);
 	framebuffer[pixel_offset++] = GREEN(Colour);
 	framebuffer[pixel_offset++] = RED(Colour);
@@ -143,13 +143,13 @@ void Screen::PlotPixel24(u32 pixel_offset, RGBA Colour)
 }
 void Screen::PlotPixel16(u32 pixel_offset, RGBA Colour)
 {
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 	*(unsigned short*)&framebuffer[pixel_offset] = ((RED(Colour) >> 3) << 11) | ((GREEN(Colour) >> 2) << 5) | (BLUE(Colour) >> 3);
 #endif
 }
 void Screen::PlotPixel8(u32 pixel_offset, RGBA Colour)
 {
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 	framebuffer[pixel_offset++] = RED(Colour);
 #endif
 }
@@ -349,4 +349,3 @@ void Screen::PlotImage(u32* image, int x, int y, int w, int h)
 		}
 	}
 }
-

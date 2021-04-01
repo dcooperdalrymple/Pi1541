@@ -2,17 +2,17 @@
 // Copyright(C) 2018 Stephen White
 //
 // This file is part of Pi1541.
-// 
+//
 // Pi1541 is free software : you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // Pi1541 is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Pi1541. If not, see <http://www.gnu.org/licenses/>.
 
@@ -45,7 +45,7 @@ bool DiskCaddy::Empty()
 	int index;
 	bool anyDirty = false;
 
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 	if (screen)
 		screen->Clear(RGBA(0x40, 0x31, 0x8D, 0xFF));
 #endif
@@ -55,7 +55,7 @@ bool DiskCaddy::Empty()
 		if (disks[index]->IsDirty())
 		{
 			anyDirty = true;
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 			if (screen)
 			{
 				x = screen->ScaleX(screenPosXCaddySelections);
@@ -63,6 +63,7 @@ bool DiskCaddy::Empty()
 
 				snprintf(buffer, 256, "Saving %s", disks[index]->GetName());
 				screen->PrintText(false, x, y, buffer, RGBA(0xff, 0xff, 0xff, 0xff), red);
+				screen->SwapBuffers();
 			}
 #endif
 			if (screenLCD)
@@ -86,7 +87,7 @@ bool DiskCaddy::Empty()
 
 	if (anyDirty)
 	{
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 		if (screen)
 		{
 			x = screen->ScaleX(screenPosXCaddySelections);
@@ -94,6 +95,7 @@ bool DiskCaddy::Empty()
 
 			snprintf(buffer, 256, "                     Saving Complete                    ");
 			screen->PrintText(false, x, y, buffer, RGBA(0xff, 0xff, 0xff, 0xff), red);
+			screen->SwapBuffers();
 		}
 #endif
 		if (screenLCD)
@@ -127,7 +129,7 @@ bool DiskCaddy::Insert(const FILINFO* fileInfo, bool readOnly)
 	FRESULT res = f_open(&fp, fileInfo->fname, FA_READ);
 	if (res == FR_OK)
 	{
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 		if (screen)
 		{
 			x = screen->ScaleX(screenPosXCaddySelections);
@@ -138,9 +140,10 @@ bool DiskCaddy::Insert(const FILINFO* fileInfo, bool readOnly)
 
 			snprintf(buffer, 256, "Loading %s", fileInfo->fname);
 			screen->PrintText(false, x, y, buffer, RGBA(0xff, 0xff, 0xff, 0xff), red);
+
+			screen->SwapBuffers();
 		}
 #endif
-
 		if (screenLCD)
 		{
 			RGBA BkColour = RGBA(0, 0, 0, 0xFF);
@@ -312,7 +315,7 @@ void DiskCaddy::Display()
 	unsigned caddyIndex;
 	int x;
 	int y;
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 	if (screen)
 	{
 		x = screen->ScaleX(screenPosXCaddySelections);
@@ -340,6 +343,8 @@ void DiskCaddy::Display()
 				}
 			}
 		}
+
+		screen->SwapBuffers();
 	}
 #endif
 	ShowSelectedImage(0);
@@ -348,14 +353,14 @@ void DiskCaddy::Display()
 void DiskCaddy::ShowSelectedImage(u32 index)
 {
 	DiskImage* image = GetImage(index);
-	
+
 	if (image == 0)
 	{
 		return;
 	}
 	u32 x;
 	u32 y;
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 	if (screen)
 	{
 		x = screen->ScaleX(screenPosXCaddySelections);
@@ -366,9 +371,9 @@ void DiskCaddy::ShowSelectedImage(u32 index)
 			snprintf(buffer, 256, "* %d %s", index + 1, name);
 		}
 		screen->PrintText(false, x, y, buffer, white, red);
+		screen->SwapBuffers();
 	}
 #endif
-
 	if (screenLCD)
 	{
 		unsigned numberOfImages = GetNumberOfImages();
@@ -436,7 +441,7 @@ bool DiskCaddy::Update()
 	u32 caddyIndex = GetSelectedIndex();
 	if (caddyIndex != oldCaddyIndex)
 	{
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 		if (screen)
 		{
 			x = screen->ScaleX(screenPosXCaddySelections);
@@ -453,6 +458,7 @@ bool DiskCaddy::Update()
 					screen->PrintText(false, x, y, buffer, grey, greyDark);
 				}
 			}
+			screen->SwapBuffers();
 		}
 #endif
 
@@ -461,7 +467,7 @@ bool DiskCaddy::Update()
 
 		if (screenLCD)
 		{
-			
+
 		}
 		return true;
 	}

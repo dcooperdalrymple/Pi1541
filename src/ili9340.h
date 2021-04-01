@@ -1,6 +1,17 @@
 // 2021 Cooper Dalrymple
 // Code sourced from https://github.com/mpod/raspi-bare-metal
 
+#ifndef ILI9340_H
+#define ILI9340_H
+
+#include "types.h"
+#include "rpi-base.h"
+#include "rpi-spi.h"
+extern "C"
+{
+#include "rpi-gpio.h"
+}
+
 #define ILI9340_TFTWIDTH  240
 #define ILI9340_TFTHEIGHT 320
 
@@ -82,27 +93,11 @@
 #define ILI9340_WHITE   0xFFFF
 
 extern void ILI9340_WriteCommand(uint8_t command, int param_len, ...);
-
 extern void ILI9340_Init(void);
-
 extern void ILI9340_Close(void);
-
 extern void ILI9340_SetAddrWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1);
-
-extern void ILI9340_DrawPixel(uint16_t x, uint16_t y, uint16_t color);
-
-extern void ILI9340_FillRect(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color);
-
-extern void ILI9340_DrawLineV(uint16_t x, uint16_t y, uint16_t h, uint16_t color);
-
-extern void ILI9340_DrawLineH(uint16_t x, uint16_t y, uint16_t w, uint16_t color);
-
 extern void ILI9340_SetRotation(uint8_t m);
-
 extern uint16_t ILI9340_GetWidth();
-
 extern uint16_t ILI9340_GetHeight();
 
-extern void ILI9340_UpdateDisplay();
-
-void ILI9340_MkDirty(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1);
+#endif

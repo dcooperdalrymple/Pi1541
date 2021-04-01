@@ -2,17 +2,17 @@
 // Copyright(C) 2018 Stephen White
 //
 // This file is part of Pi1541.
-// 
+//
 // Pi1541 is free software : you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // Pi1541 is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Pi1541. If not, see <http://www.gnu.org/licenses/>.
 
@@ -27,7 +27,6 @@ extern "C"
 #include "rpi-aux.h"
 #include "rpi-i2c.h"
 #include "rpi-gpio.h"
-#include "rpi-spi.h"
 #include "startup.h"
 #include "cache.h"
 #include "rpi-mailbox-interface.h"
@@ -35,6 +34,7 @@ extern "C"
 #include <uspi.h>
 #include "rpi-mailbox.h"
 }
+#include "rpi-spi.h"
 #include "InputMappings.h"
 #include "options.h"
 #include "iec_commands.h"
@@ -42,6 +42,9 @@ extern "C"
 #include "Pi1541.h"
 #include "Pi1581.h"
 #include "FileBrowser.h"
+#if defined(SCREENTFT)
+#include "ScreenTFT.h"
+#endif
 #include "ScreenLCD.h"
 #include "SpinLock.h"
 
@@ -107,7 +110,11 @@ Pi1541 pi1541;
 Pi1581 pi1581;
 #endif
 CEMMCDevice	m_EMMC;
+#if not defined(SCREENTFT)
 Screen screen;
+#else
+ScreenTFT screen;
+#endif
 ScreenLCD* screenLCD = 0;
 Options options;
 const char* fileBrowserSelectedName;
@@ -125,11 +132,16 @@ u16 pc;
 u32 clockCycles1MHz;
 #endif
 
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 SpinLock core0RefreshingScreen;
 #endif
+#if not defined(SCREENTFT)
 unsigned int screenWidth = 1024;
 unsigned int screenHeight = 768;
+#else
+unsigned int screenWidth = 320;
+unsigned int screenHeight = 240;
+#endif
 
 const char* termainalTextRed = "\E[31m";
 const char* termainalTextNormal = "\E[0m";
@@ -255,8 +267,10 @@ void InitialiseHardware()
 	RPI_TouchInit();
 #endif
 
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) && not defined(SCREENTFT)
 	screen.Open(screenWidth, screenHeight, 16);
+#elif defined(SCREENTFT)
+	screen.Open();
 #endif
 	RPI_PropertyInit();
 	RPI_PropertyAddTag(TAG_GET_MAX_CLOCK_RATE, ARM_CLK_ID);
@@ -364,7 +378,7 @@ void UpdateLCD(const char* track, unsigned temperature)
 {
 	if (screenLCD)
 	{
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 		core0RefreshingScreen.Acquire();
 #endif
 
@@ -379,7 +393,7 @@ void UpdateLCD(const char* track, unsigned temperature)
 		screenLCD->RefreshRows(0, 1);
 
 		IEC_Bus::WaitMicroSeconds(100);
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 		core0RefreshingScreen.Release();
 #endif
 	}
@@ -389,7 +403,7 @@ void UpdateLCD(const char* track, unsigned temperature)
 // Care must be taken not to crowd out the shared cache with core1 as this could slow down core1 so that it no longer can perform its duties in the 1us timings it requires.
 void UpdateScreen()
 {
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 	bool oldLED = false;
 	bool oldMotor = false;
 	bool oldATN = false;
@@ -634,6 +648,7 @@ void UpdateScreen()
 			}
 		}
 
+		screen.SwapBuffers();
 
 		//if (options.GetSupportUARTInput())
 		//	UpdateUartControls(refreshUartStatusDisplay, oldLED, oldMotor, oldATN, oldDATA, oldCLOCK, oldTrack, romIndex);
@@ -796,16 +811,16 @@ EXIT_TYPE Emulate1541(FileBrowser* fileBrowser)
 	if (numberOfImagesMax > 10)
 		numberOfImagesMax = 10;
 
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 	core0RefreshingScreen.Acquire();
 #endif
 	diskCaddy.Display();
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 	core0RefreshingScreen.Release();
 #endif
 
 	inputMappings->directDiskSwapRequest = 0;
-	// Force an update on all the buttons now before we start emulation mode. 
+	// Force an update on all the buttons now before we start emulation mode.
 	IEC_Bus::ReadBrowseMode();
 
 	bool extraRAM = options.GetExtraRAM();
@@ -967,7 +982,7 @@ EXIT_TYPE Emulate1541(FileBrowser* fileBrowser)
 		} while (ctAfter == ctBefore);
 #endif
 		ctBefore = ctAfter;
-		
+
 		if (!refreshOutsAfterCPUStep)
 		{
 			IEC_Bus::ReadEmulationMode1541();
@@ -1045,16 +1060,16 @@ EXIT_TYPE Emulate1581(FileBrowser* fileBrowser)
 	if (numberOfImagesMax > 10)
 		numberOfImagesMax = 10;
 
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 	core0RefreshingScreen.Acquire();
 #endif
 	diskCaddy.Display();
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 	core0RefreshingScreen.Release();
 #endif
 
 	inputMappings->directDiskSwapRequest = 0;
-	// Force an update on all the buttons now before we start emulation mode. 
+	// Force an update on all the buttons now before we start emulation mode.
 	IEC_Bus::ReadBrowseMode();
 
 	DataBusReadFn dataBusRead = read6502_1581;
@@ -1263,7 +1278,7 @@ void emulator()
 			IEC_Bus::Reset();
 
 			IEC_Bus::LetSRQBePulledHigh();
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 			core0RefreshingScreen.Acquire();
 #endif
 			IEC_Bus::WaitMicroSeconds(100);
@@ -1275,7 +1290,7 @@ void emulator()
 			fileBrowser->ClearSelections();
 
 			fileBrowser->RefeshDisplay(); // Just redisplay the current folder.
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 			core0RefreshingScreen.Release();
 #endif
 			selectedViaIECCommands = false;
@@ -1399,7 +1414,7 @@ void emulator()
 
 			// Clearing the caddy now
 			//	- will write back all changed/dirty/written to disk images now
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 			core0RefreshingScreen.Acquire();
 #endif
 			if (diskCaddy.Empty())
@@ -1407,13 +1422,13 @@ void emulator()
 
 			IEC_Bus::WaitUntilReset();
 			emulating = IEC_COMMANDS;
-	
+
 			if ((exitReason == EXIT_RESET) && (options.GetOnResetChangeToStartingFolder() || selectedViaIECCommands))
 				fileBrowser->DisplayRoot(); // TO CHECK
 
 			inputMappings->WaitForClearButtons();
 
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 			core0RefreshingScreen.Release();
 #endif
 		}
@@ -1429,9 +1444,9 @@ void emulator()
 //}
 
 #ifdef HAS_MULTICORE
-extern "C" 
+extern "C"
 {
-	void run_core() 
+	void run_core()
 	{
 		enable_MMU_and_IDCaches();
 		_enable_unaligned_access();
@@ -1482,7 +1497,7 @@ static bool AttemptToLoadROM(char* ROMName)
 
 static void DisplayLogo()
 {
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 	int w;
 	int h;
 	int channels_in_file;
@@ -1492,6 +1507,8 @@ static void DisplayLogo()
 
 	snprintf(tempBuffer, tempBufferSize, "V%d.%02d", versionMajor, versionMinor);
 	screen.PrintText(false, 20, 180, tempBuffer, FileBrowser::Colour(VIC2_COLOUR_INDEX_BLUE));
+
+	screen.SwapBuffers();
 #endif
 }
 
@@ -1518,7 +1535,7 @@ static void LoadOptions()
 
 void DisplayOptions(int y_pos)
 {
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 	// print confirmation of parsed options
 	snprintf(tempBuffer, tempBufferSize, "ignoreReset = %d\r\n", options.IgnoreReset());
 	screen.PrintText(false, 0, y_pos += 16, tempBuffer, COLOUR_WHITE, COLOUR_BLACK);
@@ -1540,12 +1557,14 @@ void DisplayOptions(int y_pos)
 	screen.PrintText(false, 0, y_pos += 16, tempBuffer, COLOUR_WHITE, COLOUR_BLACK);
 	snprintf(tempBuffer, tempBufferSize, "AutoBaseName = %s\r\n", options.GetAutoBaseName());
 	screen.PrintText(false, 0, y_pos += 16, tempBuffer, COLOUR_WHITE, COLOUR_BLACK);
+
+	screen.SwapBuffers();
 #endif
 }
 
 void DisplayI2CScan(int y_pos)
 {
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 	int BSCMaster = options.I2CBusMaster();
 
 	snprintf(tempBuffer, tempBufferSize, "Scanning i2c bus %d ...\r\n", BSCMaster);
@@ -1568,6 +1587,8 @@ void DisplayI2CScan(int y_pos)
 		ptr += snprintf (tempBuffer+ptr, tempBufferSize-ptr, "Nothing");
 
 	screen.PrintText(false, 0, y_pos+16, tempBuffer, COLOUR_WHITE, COLOUR_BLACK);
+
+	screen.SwapBuffers();
 #endif
 }
 
@@ -1583,7 +1604,7 @@ static void CheckOptions()
 
 	deviceID = (u8)options.GetDeviceID();
 	DEBUG_LOG("DeviceID = %d\r\n", deviceID);
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 	const char* FontROMName = options.GetRomFontName();
 	if (FontROMName)
 	{
@@ -1616,6 +1637,8 @@ static void CheckOptions()
 				CBMFont = CBMFontData;
 			}
 			//DEBUG_LOG("Read ROM %s from options\r\n", ROMName);
+
+			screen.SwapBuffers();
 		}
 	}
 #endif
@@ -1644,6 +1667,8 @@ static void CheckOptions()
 			}
 			f_close(&fp);
 			//DEBUG_LOG("Read ROM %s from options\r\n", ROMName);
+
+			screen.SwapBuffers();
 		}
 	}
 
@@ -1687,6 +1712,8 @@ static void CheckOptions()
 			}
 			f_close(&fp);
 			//DEBUG_LOG("Read ROM %s from options\r\n", ROMName);
+
+			screen.SwapBuffers();
 		}
 	}
 
@@ -1700,8 +1727,10 @@ static void CheckOptions()
 		do
 		{
 			screen.Clear(COLOUR_RED);
+			screen.SwapBuffers();
 			IEC_Bus::WaitMicroSeconds(20000);
 			screen.PrintText(false, xpos, ypos, tempBuffer, COLOUR_WHITE, COLOUR_RED);
+			screen.SwapBuffers();
 			IEC_Bus::WaitMicroSeconds(100000);
 		}
 		while (1);
@@ -1732,7 +1761,7 @@ bool SwitchDrive(const char* drive)
 
 void UpdateFirmwareToSD()
 {
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 	const char* firmwareName = "kernel.img";
 	DIR dir;
 	FILINFO filInfo;
@@ -1828,12 +1857,14 @@ void UpdateFirmwareToSD()
 			f_chdir(cwd);
 		}
 	}
+
+	screen.SwapBuffers();
 #endif
 }
 
 void DisplayMessage(int x, int y, bool LCD, const char* message, u32 textColour, u32 backgroundColour)
 {
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 	char buffer[256] = { 0 };
 
 	if (!LCD)
@@ -1842,6 +1873,7 @@ void DisplayMessage(int x, int y, bool LCD, const char* message, u32 textColour,
 		y = screen.ScaleY(y);
 
 		screen.PrintText(false, x, y, (char*)message, textColour, backgroundColour);
+		screen.SwapBuffers();
 	}
 	else if (screenLCD)
 	{
@@ -1893,7 +1925,7 @@ extern "C"
 		DisplayLogo();
 
 		InitialiseLCD();
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 		int y_pos = 184;
 		snprintf(tempBuffer, tempBufferSize, "Copyright(C) 2018 Stephen White");
 		screen.PrintText(false, 0, y_pos+=16, tempBuffer, COLOUR_WHITE, COLOUR_BLACK);
@@ -1907,6 +1939,8 @@ extern "C"
 
 		if (options.ShowOptions())
 			DisplayOptions(y_pos+=32);
+
+		screen.SwapBuffers();
 
 #endif
 		headSoundFreq = 1000000 / options.SoundOnGPIOFreq();	// 1200Hz = 1/1200 * 10^6;
@@ -2006,4 +2040,3 @@ extern "C"
 #endif
 	}
 }
-

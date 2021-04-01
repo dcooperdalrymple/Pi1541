@@ -2,17 +2,17 @@
 // Copyright(C) 2018 Stephen White
 //
 // This file is part of Pi1541.
-// 
+//
 // Pi1541 is free software : you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
-// 
+//
 // Pi1541 is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Pi1541. If not, see <http://www.gnu.org/licenses/>.
 
@@ -29,7 +29,7 @@ class DiskCaddy
 public:
 	DiskCaddy()
 		: selectedIndex(0)
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 		, screen(0)
 #endif
 		, screenLCD(0)
@@ -37,8 +37,8 @@ public:
 	{
 	}
 	void SetScreen(Screen* screen, ScreenBase* screenLCD, ROMs* roms)
-	{ 
-#if not defined(EXPERIMENTALZERO)
+	{
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 		this->screen = screen;
 #endif
 		this->screenLCD = screenLCD;
@@ -114,7 +114,7 @@ private:
 	std::vector<DiskImage*> disks;
 	u32 selectedIndex;
 	u32 oldCaddyIndex;
-#if not defined(EXPERIMENTALZERO)
+#if not defined(EXPERIMENTALZERO) || defined(SCREENTFT)
 	ScreenBase* screen;
 #endif
 	ScreenBase* screenLCD;
